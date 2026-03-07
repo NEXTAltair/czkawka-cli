@@ -1,0 +1,39 @@
+{
+  "id": "czkawka-cli",
+  "name": "Czkawka CLI",
+  "description": "Standalone Czkawka CLI wrapper for exact duplicate and similar video scans with cache/config reuse and optional normalized artifacts.",
+  "version": "0.1.0",
+  "skills": ["./skills"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "czkawkaCliPath": { "type": "string", "minLength": 1 },
+      "ffmpegPath": { "type": "string", "minLength": 1 },
+      "ffprobePath": { "type": "string", "minLength": 1 },
+      "cacheRoot": { "type": "string", "minLength": 1 },
+      "configRoot": { "type": "string", "minLength": 1 },
+      "outputRoot": { "type": "string", "minLength": 1 },
+      "defaultThreads": { "type": "integer", "minimum": 1, "maximum": 128 },
+      "defaultHashType": { "type": "string", "enum": ["BLAKE3", "XXH3", "CRC32"] },
+      "defaultSimilarVideoTolerance": { "type": "integer", "minimum": 0, "maximum": 20 },
+      "defaultSimilarVideoScanDuration": { "type": "integer", "minimum": 2, "maximum": 60 },
+      "defaultSimilarVideoSkipForwardAmount": { "type": "integer", "minimum": 0, "maximum": 300 },
+      "defaultSimilarVideoCropDetect": { "type": "string", "enum": ["none", "letterbox", "motion"] }
+    }
+  },
+  "uiHints": {
+    "czkawkaCliPath": { "label": "Czkawka CLI path", "placeholder": "czkawka_cli" },
+    "ffmpegPath": { "label": "ffmpeg path", "placeholder": "ffmpeg" },
+    "ffprobePath": { "label": "ffprobe path", "placeholder": "ffprobe" },
+    "cacheRoot": { "label": "Czkawka cache root", "placeholder": "(system default or shared path)" },
+    "configRoot": { "label": "Czkawka config root", "placeholder": "(system default or shared path)" },
+    "outputRoot": { "label": "Artifact output root", "placeholder": "/path/to/output" },
+    "defaultThreads": { "label": "Default threads" },
+    "defaultHashType": { "label": "Default exact hash type" },
+    "defaultSimilarVideoTolerance": { "label": "Default similar-video tolerance" },
+    "defaultSimilarVideoScanDuration": { "label": "Default similar-video scan duration (sec)" },
+    "defaultSimilarVideoSkipForwardAmount": { "label": "Default similar-video skip-forward amount (sec)" },
+    "defaultSimilarVideoCropDetect": { "label": "Default similar-video crop detect" }
+  }
+}
