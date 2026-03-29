@@ -125,6 +125,8 @@ export function runCzkawkaCli(opts: {
       arg.startsWith("/") ? wslPathToWinUncPath(arg) : arg,
     );
     const result = runCmdViaPwsh(cmd, winArgs, { timeoutMs: 60 * 60 * 1000 });
+    // exit 11 = "results found" (documented czkawka exit code, not a crash)
+    if (result.code === 11) result.ok = true;
     return { result, binaries, env: process.env as NodeJS.ProcessEnv };
   }
 
@@ -136,6 +138,8 @@ export function runCzkawkaCli(opts: {
   });
   const cmd = binaries.czkawkaCliPath || "czkawka_cli";
   const result = runCmd(cmd, opts.args, { env, timeoutMs: 60 * 60 * 1000 });
+  // czkawka exit code 11 = "duplicates found" (intentional, not a crash)
+  if (result.code === 11) result.ok = true;
   return { result, binaries, env };
 }
 
