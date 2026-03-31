@@ -36,14 +36,35 @@ export function runCmd(
   };
 }
 
+// Openclaw の実行コンテキストでは Windows PATH が継承されないため
+// pwsh.exe をフルパスで解決する。
+const PWSH_CANDIDATES = [
+  "/mnt/c/Program Files/PowerShell/7/pwsh.exe",
+  "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+];
+
+function resolvePwsh(): string {
+  const pathVar = process.env.PATH || "";
+  for (const dir of pathVar.split(path.delimiter)) {
+    if (!dir) continue;
+    const p = path.join(dir, "pwsh.exe");
+    try { fs.accessSync(p, fs.constants.X_OK); return p; } catch { /* continue */ }
+  }
+  for (const p of PWSH_CANDIDATES) {
+    try { fs.accessSync(p, fs.constants.X_OK); return p; } catch { /* continue */ }
+  }
+  return "pwsh.exe";
+}
+
 export function runCmdViaPwsh(
   command: string,
   args: string[],
   opts?: { timeoutMs?: number },
 ): CmdResult {
+  const pwsh = resolvePwsh();
   const quote = (s: string) => `'${s.replace(/'/g, "''")}'`;
   const psCommand = `& ${[command, ...args].map(quote).join(" ")}; exit $LASTEXITCODE`;
-  const cp = spawnSync("pwsh.exe", ["-NoProfile", "-Command", psCommand], {
+  const cp = spawnSync(pwsh, ["-NoProfile", "-Command", psCommand], {
     encoding: "utf-8",
     timeout: opts?.timeoutMs,
     maxBuffer: 32 * 1024 * 1024,
