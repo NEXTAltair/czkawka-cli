@@ -1,6 +1,6 @@
 import { latestArtifacts } from "./artifacts";
 import { getToolDefinition } from "./tool-definitions";
-import { resolveBinaries, effectiveCacheRoot, effectiveConfigRoot } from "./czkawka";
+import { resolveBinaries, effectiveCacheRoot, effectiveConfigRoot, getWindowsCzkawkaVersion } from "./czkawka";
 import { toToolResult } from "./runtime";
 import type { AnyObj } from "./types";
 import { pluginId } from "./plugin-meta";
@@ -15,6 +15,7 @@ export function registerToolStatus(api: any, getCfg: (api: any) => any) {
       async execute(_id: string, params: AnyObj) {
         const cfg = getCfg(api);
         const bins = resolveBinaries(cfg);
+        const winCzk = getWindowsCzkawkaVersion(cfg);
         const cacheRootEffective = effectiveCacheRoot(cfg);
         const configRootEffective = effectiveConfigRoot(cfg);
         const latest = latestArtifacts(cfg.outputRoot);
@@ -26,6 +27,7 @@ export function registerToolStatus(api: any, getCfg: (api: any) => any) {
           pluginId,
           configured: {
             outputRoot: cfg.outputRoot,
+            windowsCzkawkaCliPath: cfg.windowsCzkawkaCliPath ?? null,
             cacheRoot: cfg.cacheRoot ?? null,
             configRoot: cfg.configRoot ?? null,
             defaultThreads: cfg.defaultThreads,
@@ -37,6 +39,9 @@ export function registerToolStatus(api: any, getCfg: (api: any) => any) {
           },
           resolved: {
             czkawkaCliPath: bins.czkawkaCliPath,
+            windowsCzkawkaCliPath: winCzk.path,
+            windowsCzkawkaCliVersion: winCzk.ok ? winCzk.version : null,
+            windowsCzkawkaCliOk: winCzk.ok,
             ffmpegPath: bins.ffmpegPath,
             ffprobePath: bins.ffprobePath,
             cacheRootEffective,
@@ -51,6 +56,5 @@ export function registerToolStatus(api: any, getCfg: (api: any) => any) {
         });
       },
     },
-    { optional: true },
   );
 }

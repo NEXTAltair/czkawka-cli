@@ -61,6 +61,5 @@ export function registerToolCacheInfo(api: any, getCfg: (api: any) => any) {
         });
       },
     },
-    { optional: true },
   );
 }

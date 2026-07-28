@@ -108,6 +108,17 @@ export const TOOL_DEFINITIONS: ToolDef[] = [
           description: "Reuse and update Czkawka cache data when available.",
           default: true,
         },
+        runner: {
+          type: "string",
+          description: "Runtime runner. Use windows/windows-pwsh to call Windows windows_czkawka_cli through PowerShell; auto-selects for Windows drive paths and /mnt/<drive> paths.",
+          enum: ["native", "windows", "windows-pwsh", "auto"],
+          default: "auto",
+        },
+        useWindowsCli: {
+          type: "boolean",
+          description: "Force Windows windows_czkawka_cli execution through PowerShell. Prefer runner unless compatibility requires this flag.",
+          default: false,
+        },
         minFileSizeBytes: {
           type: "integer",
           description: "Ignore files smaller than this size in bytes.",
@@ -207,6 +218,17 @@ export const TOOL_DEFINITIONS: ToolDef[] = [
           type: "boolean",
           description: "Reuse and update Czkawka cache data when available.",
           default: true,
+        },
+        runner: {
+          type: "string",
+          description: "Runtime runner. Use windows/windows-pwsh to call Windows windows_czkawka_cli through PowerShell; auto-selects for Windows drive paths and /mnt/<drive> paths.",
+          enum: ["native", "windows", "windows-pwsh", "auto"],
+          default: "auto",
+        },
+        useWindowsCli: {
+          type: "boolean",
+          description: "Force Windows windows_czkawka_cli execution through PowerShell. Prefer runner unless compatibility requires this flag.",
+          default: false,
         },
         saveRawJson: {
           type: "boolean",

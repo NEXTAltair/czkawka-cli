@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { buildCzkawkaEnv, normalizeExtensionsForCzkawka, resolveExecutable, runCmd, runCmdViaPwsh } from "./runtime";
 import type { AnyObj, CmdResult, CzkawkaPluginConfig, CropDetect, HashType } from "./types";
 
@@ -41,6 +42,19 @@ export function getVersion(pathOrCmd: string | null, args: string[] = ["--versio
   const r = runCmd(pathOrCmd, args, { env, timeoutMs: 15000 });
   const line = (r.stdout || r.stderr).split(/\r?\n/).find((s) => s.trim()) || "";
   return { ok: r.ok, version: line.trim(), path: pathOrCmd, stderr: r.stderr.trim(), stdout: r.stdout.trim() };
+}
+
+export function getWindowsCzkawkaVersion(cfg: CzkawkaPluginConfig, args: string[] = ["--version"]): {
+  ok: boolean;
+  version: string;
+  path: string;
+  stderr: string;
+  stdout: string;
+} {
+  const cmd = cfg.windowsCzkawkaCliPath || "windows_czkawka_cli";
+  const r = runCmdViaPwsh(cmd, args, { timeoutMs: 15000 });
+  const line = (r.stdout || r.stderr).split(/\r?\n/).find((s) => s.trim()) || "";
+  return { ok: r.ok, version: line.trim(), path: cmd, stderr: r.stderr.trim(), stdout: r.stdout.trim() };
 }
 
 function pushRepeated(args: string[], flag: string, values?: string[]) {
@@ -120,9 +134,9 @@ export function runCzkawkaCli(opts: {
   const binaries = resolveBinaries(opts.cfg);
 
   if (opts.useWindowsCli) {
-    const cmd = opts.cfg.czkawkaCliPath || "windows_czkawka_cli";
+    const cmd = opts.cfg.windowsCzkawkaCliPath || "windows_czkawka_cli";
     const winArgs = [...opts.args, "-W"].map((arg) =>
-      arg.startsWith("/") ? wslPathToWinUncPath(arg) : arg,
+      arg.startsWith("/") ? wslPathToWindowsCliPath(arg) : arg,
     );
     const result = runCmdViaPwsh(cmd, winArgs, { timeoutMs: 60 * 60 * 1000 });
     // exit 11 = "results found" (documented czkawka exit code, not a crash)
@@ -164,6 +178,10 @@ export function normalizeFsPathArray(v: unknown): string[] {
   return normalizePathArray(v).map(toCzkawkaFsPath);
 }
 
+export function normalizeWindowsPathArray(v: unknown): string[] {
+  return normalizePathArray(v).map(toWindowsCzkawkaPath);
+}
+
 export function toCzkawkaFsPath(input: string): string {
   const s = String(input || "").trim();
   if (!s) return s;
@@ -178,7 +196,53 @@ export function isWindowsStylePath(p: string): boolean {
   return /^[A-Za-z]:[\\\/]/.test(p);
 }
 
-function wslPathToWinUncPath(wslPath: string): string {
-  const distro = process.env.WSL_DISTRO_NAME || "Ubuntu";
+export function isWslDriveMountPath(p: string): boolean {
+  return /^\/mnt\/[A-Za-z](?:\/|$)/.test(String(p || ""));
+}
+
+export function shouldUseWindowsCliForPaths(paths: string[]): boolean {
+  return paths.some((p) => isWindowsStylePath(p) || isWslDriveMountPath(p));
+}
+
+export function toWindowsCzkawkaPath(input: string): string {
+  const s = String(input || "").trim();
+  if (!s) return s;
+  const win = /^([A-Za-z]):[\\/](.*)$/.exec(s);
+  if (win) return `${win[1].toUpperCase()}:\\${(win[2] || "").replace(/[\\/]+/g, "\\")}`;
+  const wsl = /^\/mnt\/([A-Za-z])(?:\/(.*))?$/.exec(s);
+  if (wsl) return `${wsl[1].toUpperCase()}:\\${(wsl[2] || "").replace(/\//g, "\\")}`;
+  return s;
+}
+
+function wslPathToWindowsCliPath(wslPath: string): string {
+  if (isWslDriveMountPath(wslPath)) return toWindowsCzkawkaPath(wslPath);
+  const distro = process.env.WSL_DISTRO_NAME || detectWslDistroName() || "Ubuntu-24.04";
   return `\\\\wsl.localhost\\${distro}${wslPath.replace(/\//g, "\\")}`;
+}
+
+function detectWslDistroName(): string | null {
+  const candidates = ["/mnt/c/Windows/System32/wsl.exe", "wsl.exe"];
+  for (const cmd of candidates) {
+    try {
+      const cp = spawnSync(cmd, ["-l", "-q"], {
+        encoding: "buffer",
+        timeout: 5000,
+        maxBuffer: 1024 * 1024,
+      });
+      if (cp.status !== 0 || !cp.stdout?.length) continue;
+      const decoded = cp.stdout.includes(0)
+        ? cp.stdout.toString("utf16le")
+        : cp.stdout.toString("utf8");
+      const names = decoded
+        .split(/\r?\n/)
+        .map((s) => s.replace(/\0/g, "").trim().replace(/^\*\s*/, ""))
+        .filter(Boolean)
+        .filter((s) => !/^docker-desktop/i.test(s));
+      const current = names.find((s) => /^Ubuntu-24\.04$/i.test(s));
+      return current || names[0] || null;
+    } catch {
+      // try next candidate
+    }
+  }
+  return null;
 }

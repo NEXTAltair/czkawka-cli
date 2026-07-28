@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { checkPathWritable, toToolResult } from "./runtime";
 import { getToolDefinition } from "./tool-definitions";
-import { effectiveCacheRoot, effectiveConfigRoot, getVersion, resolveBinaries } from "./czkawka";
+import { effectiveCacheRoot, effectiveConfigRoot, getVersion, getWindowsCzkawkaVersion, resolveBinaries } from "./czkawka";
 import type { AnyObj } from "./types";
 
 export function registerToolValidate(api: any, getCfg: (api: any) => any) {
@@ -20,6 +20,7 @@ export function registerToolValidate(api: any, getCfg: (api: any) => any) {
         const checkWritablePaths = params.checkWritablePaths !== false;
 
         const czk = getVersion(bins.czkawkaCliPath, ["--version"]);
+        const winCzk = getWindowsCzkawkaVersion(cfg);
         const ffm = checkVideoDeps ? getVersion(bins.ffmpegPath, ["-version"]) : { ok: true, version: "skipped", path: bins.ffmpegPath, stderr: "", stdout: "" };
         const ffp = checkVideoDeps ? getVersion(bins.ffprobePath, ["-version"]) : { ok: true, version: "skipped", path: bins.ffprobePath, stderr: "", stdout: "" };
 
@@ -29,6 +30,7 @@ export function registerToolValidate(api: any, getCfg: (api: any) => any) {
 
         const checks = {
           czkawkaCli: { ok: czk.ok, version: czk.version, path: czk.path, stderr: czk.stderr },
+          windowsCzkawkaCli: { ok: winCzk.ok, version: winCzk.version, path: winCzk.path, stderr: winCzk.stderr },
           ffmpeg: { ok: ffm.ok, version: ffm.version, path: ffm.path, stderr: ffm.stderr, skipped: !checkVideoDeps },
           ffprobe: { ok: ffp.ok, version: ffp.version, path: ffp.path, stderr: ffp.stderr, skipped: !checkVideoDeps },
           cacheRoot: { ok: cacheCheck.writable, path: cacheRootEffective, exists: cacheCheck.exists, writable: cacheCheck.writable, checkedPath: cacheCheck.checkedPath },
@@ -54,6 +56,5 @@ export function registerToolValidate(api: any, getCfg: (api: any) => any) {
         });
       },
     },
-    { optional: true },
   );
 }

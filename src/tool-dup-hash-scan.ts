@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { cleanupTempArtifacts, makeScanPaths, writeScanManifest } from "./artifacts";
-import { buildDupHashArgs, effectiveCacheRoot, effectiveConfigRoot, getVersion, isWindowsStylePath, loadRawJsonIfExists, normalizeFsPathArray, normalizePathArray, runCzkawkaCli } from "./czkawka";
+import { buildDupHashArgs, effectiveCacheRoot, effectiveConfigRoot, getVersion, getWindowsCzkawkaVersion, loadRawJsonIfExists, normalizeFsPathArray, normalizePathArray, normalizeWindowsPathArray, runCzkawkaCli, shouldUseWindowsCliForPaths } from "./czkawka";
 import { normalizeDupHashRaw } from "./normalize";
 import { ensureDir, toToolResult, writeJsonlFile } from "./runtime";
 import { getToolDefinition } from "./tool-definitions";
@@ -23,9 +23,14 @@ export function registerToolDupHashScan(api: any, getCfg: (api: any) => any) {
         const rawDirs: string[] = Array.isArray(params.directories)
           ? params.directories.map((d: unknown) => String(d || "").trim()).filter(Boolean)
           : [];
-        const useWindowsCli = rawDirs.some(isWindowsStylePath);
+        const runner = String(params.runner || "").toLowerCase();
+        const useWindowsCli =
+          params.useWindowsCli === true ||
+          runner === "windows" ||
+          runner === "windows-pwsh" ||
+          (runner !== "native" && shouldUseWindowsCliForPaths(rawDirs));
         const normPaths = (v: unknown) =>
-          useWindowsCli ? normalizePathArray(v) : normalizeFsPathArray(v);
+          useWindowsCli ? normalizeWindowsPathArray(v) : normalizeFsPathArray(v);
         const directories = normPaths(params.directories);
         if (!directories.length) {
           return toToolResult({ ok: false, tool: def.name, error: "directories is required" });
@@ -42,11 +47,17 @@ export function registerToolDupHashScan(api: any, getCfg: (api: any) => any) {
         const minFileSizeBytes = Math.max(0, Number(params.minFileSizeBytes ?? 1) || 0);
         const saveRawJson = params.saveRawJson !== false;
         const saveNormalizedJsonl = params.saveNormalizedJsonl === true;
-        const cacheRootEffective = effectiveCacheRoot(cfg, typeof params.cacheRootOverride === "string" ? params.cacheRootOverride : undefined);
-        const configRootEffective = effectiveConfigRoot(cfg, typeof params.configRootOverride === "string" ? params.configRootOverride : undefined);
+        const cacheRootEffective = useWindowsCli
+          ? String(params.cacheRootOverride || cfg.cacheRoot || "windows-default")
+          : effectiveCacheRoot(cfg, typeof params.cacheRootOverride === "string" ? params.cacheRootOverride : undefined);
+        const configRootEffective = useWindowsCli
+          ? String(params.configRootOverride || cfg.configRoot || "windows-default")
+          : effectiveConfigRoot(cfg, typeof params.configRootOverride === "string" ? params.configRootOverride : undefined);
         ensureDir(cfg.outputRoot);
-        ensureDir(cacheRootEffective);
-        ensureDir(configRootEffective);
+        if (!useWindowsCli) {
+          ensureDir(cacheRootEffective);
+          ensureDir(configRootEffective);
+        }
 
         const scan = makeScanPaths({ outputRoot: cfg.outputRoot, kind: "dup_hash", saveRawJson, saveNormalizedJsonl, tag: params.tag });
         const args = buildDupHashArgs({
@@ -74,6 +85,7 @@ export function registerToolDupHashScan(api: any, getCfg: (api: any) => any) {
           minFileSizeBytes,
           cacheRootEffective,
           configRootEffective,
+          runner: useWindowsCli ? "windows-pwsh" : "native",
         };
 
         if (!result.ok) {
@@ -121,7 +133,7 @@ export function registerToolDupHashScan(api: any, getCfg: (api: any) => any) {
         ];
         if (saveNormalizedJsonl) writeJsonlFile(scan.normalizedJsonlPath!, rows);
 
-        const czkVer = getVersion(binaries.czkawkaCliPath, ["--version"]);
+        const czkVer = useWindowsCli ? getWindowsCzkawkaVersion(cfg) : getVersion(binaries.czkawkaCliPath, ["--version"]);
         const manifest = {
           scanId: scan.scanId,
           kind: "dup_hash",
@@ -156,6 +168,5 @@ export function registerToolDupHashScan(api: any, getCfg: (api: any) => any) {
         });
       },
     },
-    { optional: true },
   );
 }

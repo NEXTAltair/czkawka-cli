@@ -21,6 +21,7 @@ export type CropDetect = "none" | "letterbox" | "motion";
 
 export type CzkawkaPluginConfig = {
   czkawkaCliPath?: string;
+  windowsCzkawkaCliPath?: string;
   ffmpegPath?: string;
   ffprobePath?: string;
   cacheRoot?: string;

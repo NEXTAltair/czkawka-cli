@@ -33,6 +33,7 @@ export function resolveConfig(raw: AnyObj): CzkawkaPluginConfig {
 
   return {
     czkawkaCliPath: asNonEmptyString(raw.czkawkaCliPath),
+    windowsCzkawkaCliPath: asNonEmptyString(raw.windowsCzkawkaCliPath),
     ffmpegPath: asNonEmptyString(raw.ffmpegPath),
     ffprobePath: asNonEmptyString(raw.ffprobePath),
     cacheRoot: asNonEmptyString(raw.cacheRoot),

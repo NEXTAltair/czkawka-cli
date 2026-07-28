@@ -4,11 +4,21 @@
   "description": "Standalone Czkawka CLI wrapper for exact duplicate and similar video scans with cache/config reuse and optional normalized artifacts.",
   "version": "0.1.0",
   "skills": ["./skills"],
+  "contracts": {
+    "tools": [
+      "czkawka_cli_plugin_status",
+      "czkawka_cli_validate",
+      "czkawka_cli_cache_info",
+      "czkawka_cli_dup_hash_scan",
+      "czkawka_cli_similar_video_scan"
+    ]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
       "czkawkaCliPath": { "type": "string", "minLength": 1 },
+      "windowsCzkawkaCliPath": { "type": "string", "minLength": 1 },
       "ffmpegPath": { "type": "string", "minLength": 1 },
       "ffprobePath": { "type": "string", "minLength": 1 },
       "cacheRoot": { "type": "string", "minLength": 1 },
@@ -24,6 +34,7 @@
   },
   "uiHints": {
     "czkawkaCliPath": { "label": "Czkawka CLI path", "placeholder": "czkawka_cli" },
+    "windowsCzkawkaCliPath": { "label": "Windows Czkawka CLI path", "placeholder": "windows_czkawka_cli" },
     "ffmpegPath": { "label": "ffmpeg path", "placeholder": "ffmpeg" },
     "ffprobePath": { "label": "ffprobe path", "placeholder": "ffprobe" },
     "cacheRoot": { "label": "Czkawka cache root", "placeholder": "(system default or shared path)" },
