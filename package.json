@@ -3,7 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "build": "esbuild index.ts --bundle --platform=node --format=esm --target=node22 --outfile=dist/index.js --sourcemap",
+    "check": "npm run build && node --input-type=module --eval \"const entry = await import('./dist/index.js'); if (typeof entry.default !== 'function') throw new Error('dist/index.js must export the plugin register function as default')\""
+  },
+  "files": [
+    "dist",
+    "openclaw.plugin.json",
+    "skills"
+  ],
+  "devDependencies": {
+    "esbuild": "0.28.1"
+  },
   "openclaw": {
-    "extensions": ["./index.ts"]
+    "extensions": ["./dist/index.js"]
   }
 }
